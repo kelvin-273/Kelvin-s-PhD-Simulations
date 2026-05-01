@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from random import randint, randrange, random, sample
 from typing import NewType, List
@@ -12,7 +12,6 @@ Chromosome = NewType("Chromosome", int)
 
 @dataclass
 class Crossable(ABC):
-
     """Abstract class for plants"""
 
     @abstractmethod
@@ -46,7 +45,6 @@ class Crossable(ABC):
 
 
 class DomWeak(ABC):
-
     """Abstract class with weak dominance relation"""
 
     @abstractmethod
@@ -55,7 +53,6 @@ class DomWeak(ABC):
 
 
 class DomStrong(DomWeak):
-
     """Abstract class with strong dominance relation"""
 
     @abstractmethod
@@ -64,7 +61,6 @@ class DomStrong(DomWeak):
 
 
 class Unionable(ABC):
-
     """Abstract class for feasibility checks"""
 
     @abstractclassmethod
@@ -86,7 +82,6 @@ class Unionable(ABC):
 
 
 class InitialPop(ABC):
-
     """Abstract class for initial population generators"""
 
     @abstractmethod
@@ -108,7 +103,6 @@ class InitialPop(ABC):
 
 @dataclass(order=True)
 class PlantSPC(Crossable, DomStrong):
-
     """Plant with single-point crossover"""
 
     n_loci: int
@@ -290,7 +284,9 @@ class PlantSPC(Crossable, DomStrong):
         pop = [gen_chrom(n_loci, p) for _ in range(2 * n_individuals)]
         mask_cur = union(pop)
         while mask_cur != mask_max:
-            pop = [x | (gen_chrom(n_loci, p) & (mask_max ^ mask_cur)) for x in pop]
+            pop = [
+                x | (gen_chrom(n_loci, p) & (mask_max ^ mask_cur)) for x in pop
+            ]
             mask_cur = union(pop)
 
         return [
@@ -307,6 +303,19 @@ class PlantSPC(Crossable, DomStrong):
         return [PlantSPC(n_loci, 1 << i, 0) for i in range(n_loci)] + [
             PlantSPC(n_loci, 0, 1 << i) for i in range(n_loci)
         ]
+
+    @staticmethod
+    def initial_pop_distribute(xs: list[int]):
+        """
+        Generates the initial population for a distribute instance.
+        """
+        n_loci = len(xs)
+        pop = defaultdict(lambda: PlantSPC(n_loci, 0, 0))
+        for i, x in enumerate(xs):
+            x = pop[i]
+            x.chrom1 |= 1 << (n_loci - i - 1)
+            x.chrom2 |= 1 << (n_loci - i - 1)
+        return list(pop.values())
 
     @staticmethod
     def union(pop) -> int:
@@ -342,7 +351,6 @@ class PlantSPC(Crossable, DomStrong):
 
 @dataclass(order=True)
 class PlantSPCBitarray:
-
     """Plant with single-point crossover"""
 
     n_loci: int
@@ -381,6 +389,19 @@ class PlantSPCBitarray:
         ]
 
     @staticmethod
+    def initial_pop_distribute(xs: list[int]):
+        """
+        Generates the initial population for a distribute instance.
+        """
+        n_loci = len(xs)
+        pop = defaultdict(lambda: PlantSPCBitarray(n_loci, zeros(n_loci), zeros(n_loci)))
+        for i, x in enumerate(xs):
+            x = pop[i]
+            x.chrom1[i] = 1
+            x.chrom2[i] = 1
+        return list(pop.values())
+
+    @staticmethod
     def union(n_loci, pop) -> int:
         """
         Takes the union of all chromosomes in the population.
@@ -400,11 +421,27 @@ class PlantSPCBitarray:
         lower = self.chrom2
         return [upper.tolist(), lower.tolist()]
 
+    def to_ints(self):
+        upper = self.chrom1
+        lower = self.chrom2
+        return int(upper.to01(), 2), int(lower.to01(), 2)
+
+    def to_PlantSPC(self):
+        chrom1, chrom2 = self.to_ints()
+        return PlantSPC(self.n_loci, chrom1, chrom2)
+
+    def to_bool_list(self):
+        upper = self.chrom1
+        lower = self.chrom2
+        return [
+            [b == 1 for b in upper.tolist()],
+            [b == 1 for b in lower.tolist()],
+        ]
+
 
 @dataclass
 class WDataG(DomStrong, Unionable):
-
-    """Docstring for WData. """
+    """Docstring for WData."""
 
     def __init__(self, x, *, history):
         self.x = x
@@ -437,8 +474,7 @@ class WDataG(DomStrong, Unionable):
 
 @dataclass
 class WDataP(Crossable, DomStrong, Unionable):
-
-    """Docstring for WData. """
+    """Docstring for WData."""
 
     def __init__(self, x, *, history, count=1):
         self.x = x
@@ -472,7 +508,9 @@ class WDataP(Crossable, DomStrong, Unionable):
 
     def gamete_random(self):
         return WDataG(
-            self.x.gamete_random(), history=self.history, count=self.count,
+            self.x.gamete_random(),
+            history=self.history,
+            count=self.count,
         )
 
     def cross_specified(self, other, crosspoints):
@@ -521,11 +559,10 @@ class WDataP(Crossable, DomStrong, Unionable):
 
 def wd_plant(plant_model):
     class WD(plant_model):
-
         """Class that contains the historical data of the plant"""
 
         def __init__(self, *args, **kwargs):
-            """TODO: to be defined. """
+            """TODO: to be defined."""
             plant_model.__init__(self, *args, **kwargs)
             self.histories = None
 

@@ -25,16 +25,16 @@ class TestPlant(unittest.TestCase):
                 assert cs[i] == su[i] or cs[i] == sl[i]
 
     def test_generates_all_gametes_simple(self):
-        a = Plant(4, 5, 10)
+        x = Plant(4, 5, 10)
         # self.assertEqual(a.create_gamete_with_crosspoint())
-        self.assertEqual(a.create_gamete_with_crosspoint(0, 0), 10)
-        self.assertEqual(a.create_gamete_with_crosspoint(0, 1), 11)
-        self.assertEqual(a.create_gamete_with_crosspoint(0, 2), 9)
-        self.assertEqual(a.create_gamete_with_crosspoint(0, 3), 13)
-        self.assertEqual(a.create_gamete_with_crosspoint(1, 0), 5)
-        self.assertEqual(a.create_gamete_with_crosspoint(1, 1), 4)
-        self.assertEqual(a.create_gamete_with_crosspoint(1, 2), 6)
-        self.assertEqual(a.create_gamete_with_crosspoint(1, 3), 2)
+        self.assertEqual(x.gamete_by_crosspoint(0, 0), 10)
+        self.assertEqual(x.gamete_by_crosspoint(0, 1), 11)
+        self.assertEqual(x.gamete_by_crosspoint(0, 2), 9)
+        self.assertEqual(x.gamete_by_crosspoint(0, 3), 13)
+        self.assertEqual(x.gamete_by_crosspoint(1, 0), 5)
+        self.assertEqual(x.gamete_by_crosspoint(1, 1), 4)
+        self.assertEqual(x.gamete_by_crosspoint(1, 2), 6)
+        self.assertEqual(x.gamete_by_crosspoint(1, 3), 2)
 
     def test_prob_z_given_xy_fast(self):
         """

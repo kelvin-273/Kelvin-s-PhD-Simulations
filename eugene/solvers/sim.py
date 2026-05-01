@@ -5,19 +5,20 @@ Plants
 
 from typing import Optional, Callable
 from dataclasses import dataclass
-from collections import Counter
 from random import randrange, sample, choices
 from collections import namedtuple
-from copy import deepcopy
-from pprint import pprint
 
-import matplotlib.pyplot as plt
-import seaborn as sn
-import numpy as np
-
-from eugene.plant_models import plant
-from eugene.plant_models.plant import Plant, Population, generate_random_plant, generate_goal
-from eugene.plant_models.plant import union, prob_z_given_xy_fast, number_of_trials_to_create
+from eugene.plant_models.plant import (
+    Plant,
+    Population,
+    generate_random_plant,
+    generate_goal,
+)
+from eugene.plant_models.plant import (
+    union,
+    prob_z_given_xy_fast,
+    number_of_trials_to_create,
+)
 
 
 @dataclass
@@ -61,7 +62,6 @@ def seq_breeding(args: Args):
     if pruning:
         pop = filter_non_dominating(pop)
 
-    # print([x.format() for x in pop])
     while goal not in pop and (not generation_cap or t < generation_cap):
         x, y = choose_parents(pop)
         z = choose_intermediate_target(x, y)
@@ -81,13 +81,12 @@ def seq_breeding(args: Args):
         n_max = max(n, n_max)
         n_tot += n
         t += 1
-        # pprint([x.format() for x in pop])
 
-    # print(Results(
-        # n_generations=t, n_plants_max=n_max, n_plants_tot=n_tot, success=goal in pop
-    # ))
     return Results(
-        n_generations=t, n_plants_max=n_max, n_plants_tot=n_tot, success=goal in pop
+        n_generations=t,
+        n_plants_max=n_max,
+        n_plants_tot=n_tot,
+        success=goal in pop,
     )
 
 
@@ -120,7 +119,7 @@ class PopulationGenerators:
         assert n_remaining_loci <= n_loci // 2
         holes = sample(range(n_loci), n_remaining_loci)
 
-        mask = all_ones = (1 << n_loci) - 1
+        mask = (1 << n_loci) - 1
         for i in holes:
             mask ^= 1 << i
 
@@ -141,10 +140,7 @@ class PopulationGenerators:
             for _ in range(n_initial_pop - 1)
         ]
 
-        donor_pop = [
-            gen_elite(~mask)
-            for _ in range(1)
-        ]
+        donor_pop = [gen_elite(~mask) for _ in range(1)]
         return elite_pop + donor_pop
 
     @staticmethod
@@ -233,7 +229,7 @@ class SelectionMethods:
     def PCV_approx(x: Plant, y: Plant, n_trials=1000) -> float:
         assert x.n_loci == y.n_loci
         all_ones = (1 << x.n_loci) - 1
-        count = 0   # frequentist
+        count = 0  # frequentist
         for _ in range(n_trials):
             z = x.cross(y)
             g = z.create_gamete()
@@ -248,8 +244,8 @@ class SelectionMethods:
     def choose_parents_OHV(pop: Population):
         n = len(pop)
         p1 = max(range(n), key=lambda i: SelectionMethods.OHV(pop[i]))
-        temp_pop = pop[:p1] + pop[p1+1:]
-        p2 = max(range(n-1), key=lambda i: SelectionMethods.OHV(temp_pop[i]))
+        temp_pop = pop[:p1] + pop[p1 + 1:]
+        p2 = max(range(n - 1), key=lambda i: SelectionMethods.OHV(temp_pop[i]))
         if p2 >= p1:
             p2 += 1
         return pop[p1], pop[p2]
@@ -258,8 +254,10 @@ class SelectionMethods:
     def choose_parents_GEBV(pop: Population):
         n = len(pop)
         p1 = max(range(n), key=lambda i: SelectionMethods.GEBV(pop[i]))
-        temp_pop = pop[:p1] + pop[p1+1:]
-        p2 = max(range(n-1), key=lambda i: SelectionMethods.GEBV(temp_pop[i]))
+        temp_pop = pop[:p1] + pop[p1 + 1:]
+        p2 = max(
+            range(n - 1), key=lambda i: SelectionMethods.GEBV(temp_pop[i])
+        )
         if p2 >= p1:
             p2 += 1
         return pop[p1], pop[p2]
@@ -274,11 +272,17 @@ def choose_intermediate_target_uniform(x: Plant, y: Plant) -> Plant:
 
 
 def simulation(args: Args):
+    import matplotlib.pyplot as plt
+    import seaborn as sn
+    import numpy as np
+
     n_loci = args.n_loci
     gamma = args.gamma
     n_remaining_loci = args.n_remaining_loci
     xs = [seq_breeding(args) for _ in range(1000)]
-    sn.scatterplot([res.n_generations for res in xs], [res.n_plants_max for res in xs])
+    sn.scatterplot(
+        [res.n_generations for res in xs], [res.n_plants_max for res in xs]
+    )
     plt.title(
         "max_plants per generation vs generations to find target"
         + f"\nn_loci: {n_loci}"

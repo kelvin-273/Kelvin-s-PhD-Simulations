@@ -1,0 +1,9 @@
+nLoci = 2;
+nParents = 1;
+parents = array3d(1..nParents, 1..2, 1..nLoci, [|
+    1, 0, 0, 1,
+  |]);
+maxCrossovers = 1;
+nTreeCells = 2*nLoci;
+recombinationRate = array1d(NLociDiff, [0.1]);
+gamma = 0.95

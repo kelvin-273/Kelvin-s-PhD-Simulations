@@ -19,6 +19,7 @@ import eugene.utils as eu
 import eugene.solvers.base_min_crossings_astar as east
 import eugene.solvers.base_min_crossings_mip as emip
 import eugene.solvers.base_min_crossings_minizinc as emzn
+import eugene.solvers.base_min_crossings_distribute_astar as edis
 
 seed(0)
 
@@ -50,6 +51,20 @@ def run_with_timeout(f, args=(), timeout=None):
     return res
 
 
+def solver_distastar_aux(args, tx):
+    start = time.time()
+    res_obj = edis.breeding_program_distribute(*args)
+    res_time = time.time() - start
+    tx.send((res_obj, res_time))
+    tx.close()
+
+
+def solver_distastar(n_loci, pop_0):
+    return run_with_timeout(
+        solver_distastar_aux, (pop_0,), TIMEOUT + THREAD_DELTA
+    )
+
+
 def solver_astar_aux(args, tx):
     start = time.time()
     res_obj = east.breeding_program_distribute(*args)
@@ -65,7 +80,7 @@ def solver_astar(n_loci, pop_0):
 
 
 CTX_SAT = emzn.MinizincContext.from_solver_and_model_file(
-    "sat", "./eugene/solvers/minizinc/mincross.mzn"
+    "cp-sat", "./eugene/solvers/minizinc/mincross.mzn"
 )
 
 
@@ -83,9 +98,10 @@ def solver_cp_sat(n_loci, pop_0):
     )
 
 
-CTX_MIP = emzn.MinizincContext.from_solver_and_model_file(
-    "gurobi", "./eugene/solvers/minizinc/mincross.mzn"
-)
+CTX_MIP = (DeprecationWarning("gurobi is expired"), None)[1]
+# emzn.MinizincContext.from_solver_and_model_file(
+#     "gurobi", "./eugene/solvers/minizinc/mincross.mzn"
+# )
 
 
 def solver_cp_mip(n_loci, pop_0):
@@ -114,6 +130,7 @@ SOLVERS = {
     "CP-MIP": solver_cp_mip,
     "MIP": solver_mip,
     "A*": solver_astar,
+    "Dist-A*": solver_distastar,
 }
 
 if __name__ == "__main__":
@@ -149,6 +166,8 @@ if __name__ == "__main__":
 
     if solver is None:
         solvers = SOLVERS.items()
+    elif solver.upper() == "DIST-ASTAR":
+        solvers = [("Dist-A*", SOLVERS["Dist-A*"])]
     elif solver.upper() == "ASTAR":
         solvers = [("A*", SOLVERS["A*"])]
     elif solver.upper() not in SOLVERS:

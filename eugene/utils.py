@@ -2,6 +2,15 @@ from math import ceil
 from random import randint, random
 from typing import List, Tuple
 from functools import lru_cache
+from eugene.plant_models.plant2 import PlantSPC
+import asyncio
+
+
+def run_with_timeout(f, args=(), timeout=None):
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(
+        asyncio.wait_for(f(*args), timeout=timeout)
+    )
 
 
 def count_ones(x: int) -> int:
@@ -23,11 +32,11 @@ def count_ones(x: int) -> int:
 def count_distribute_instances(n_loci, xmax=1):
     """
     Returns the number of distribute arrays with n_loci.
-    I don't know what the fuck it means for xmax to be anything other than 1
-    but it helps in the recursive computation.
+    I don't know what it means for xmax to be anything other than 1 but it
+    helps in the recursive computation.
     Here's the better explanation (still could be better)
 
-    Let `f(n, i, xmax)` is the number of instances where `i` out `n` values are
+    `f(n, i, xmax)` is the number of instances where `i` out of `n` values are
     fixed with `xmax` gametes so far, assuming that gamete start at 1.
     `f(n, i, xmax) = count_distribute_instances(n - i + 1, xmax)`.
     """
@@ -386,41 +395,11 @@ def gen_covering_subsets(n_loci: int, segments: list):
 
 
 def distribute_to_plants(dist_array):
-    from eugene.plant_models.plant2 import PlantSPC
-
+    n_loci = len(dist_array)
     n_pop = max(dist_array) + 1
     gametes = [0] * n_pop
-    for x in dist_array:
-        for y in range(n_pop):
-            gametes[y] <<= 1
-        gametes[x] |= 1
+    for j, x in enumerate(dist_array):
+        gametes[x] |= 1 << n_loci - 1 - j
     return [
-        PlantSPC(len(dist_array), gametes[x], gametes[x]) for x in range(n_pop)
+        PlantSPC(n_loci, gametes[x], gametes[x]) for x in range(n_pop)
     ]
-
-
-def main1():
-    for ia in gen_distribute_instances(20):
-        print(ia)
-        # print_lines(distribute_to_ranges(ia))
-        print_lines_with_markings(ia)
-        print()
-
-
-def main2():
-    while True:
-        print_lines_with_markings(random_distribute_instance(80))
-        print()
-        print()
-
-
-def main3():
-    for n_loci in range(1, 14):
-        for case in gen_distribute_instances(n_loci):
-            iso_probs = distribute_to_isolated_subproblems(case)
-            if len(iso_probs) == 1:
-                print(case, iso_probs, sep="\t")
-
-
-if __name__ == "__main__":
-    main3()

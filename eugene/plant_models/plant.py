@@ -24,9 +24,9 @@ class Plant:
         split = randrange(0, self.n_loci)
         start = randint(0, 1)
 
-        return self.create_gamete_with_crosspoint(split, start)
+        return self.gamete_by_crosspoint(split, start)
 
-    def create_gamete_with_crosspoint(self, start: int, split: int):
+    def gamete_by_crosspoint(self, start: int, split: int):
         """
         Creates a gamete with cross point
         """
@@ -105,7 +105,7 @@ class Plant:
         Returns the set of gametes that can be created from this plant.
         """
         d = Counter(
-            self.create_gamete_with_crosspoint(i, j)
+            self.gamete_by_crosspoint(i, j)
             for i in range(2)
             for j in range(self.n_loci)
         )
@@ -113,7 +113,7 @@ class Plant:
 
     def reachable_gametes_with_counts(self):
         d = Counter(
-            self.create_gamete_with_crosspoint(i, j)
+            self.gamete_by_crosspoint(i, j)
             for i in range(2)
             for j in range(self.n_loci)
         )
@@ -158,7 +158,7 @@ def prob_z_given_xy(z: Plant, x: Plant, y: Plant):
         out = 0
         for start in [0, 1]:
             for split in range(nl):
-                gx = x.create_gamete_with_crosspoint(start=start, split=split)
+                gx = x.gamete_by_crosspoint(start=start, split=split)
                 if gx == c:
                     out += 1
         return out

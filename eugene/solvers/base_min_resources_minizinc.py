@@ -9,56 +9,7 @@ import eugene.plant_models.plant2 as ep2
 from eugene.solution import BaseSolution
 
 
-def breeding_program_distribute(
-    n_loci, dist_array, ctx=None, processes=1, timeout=None
-) -> BaseSolution:
-    """
-    Solves a distribute instance using the minizinc model.
-    A MinizincContext can be passed in as an optional parameter,
-    otherwise a MinizincContext is constructed using cp-sat from OR-Tools.
-    """
-    items = instance_array_genotype_homo(
-        instance_array=dist_array, max_crossovers=1
-    ).items()
-    if timeout is not None:
-        timeout = timedelta(seconds=timeout)
-
-    if ctx is None:
-        ctx = MinizincContext.from_solver_and_model_file(
-            "sat", "./eugene/solvers/minizinc/mincross_distribute.mzn",
-        )
-        instance = ctx.instance
-
-        for k, v in items:
-            instance[k] = v
-
-        result = instance.solve(
-            free_search=True, processes=processes, timeout=timeout
-        )
-        return BaseSolution(
-            tree_data=result["treeData"],
-            tree_type=result["treeType"],
-            tree_left=result["treeLeft"],
-            tree_right=result["treeRight"],
-            objective=result.objective,
-        )
-    else:
-        with ctx.instance.branch() as instance:
-
-            for k, v in items:
-                instance[k] = v
-
-            result = instance.solve(free_search=True, timeout=timeout)
-            return BaseSolution(
-                tree_data=result["treeData"],
-                tree_type=result["treeType"],
-                tree_left=result["treeLeft"],
-                tree_right=result["treeRight"],
-                objective=result.objective,
-            )
-
-
-def breeding_program(n_loci, pop_0, ctx=None, timeout=None) -> BaseSolution:
+def breeding_program(n_loci, pop_0, recombination_rate, gamma=0.95, ctx=None, timeout=None) -> BaseSolution:
     """
     Solves a distribute instance using the minizinc model.
     A MinizincContext can be passed in as an optional parameter,
@@ -67,13 +18,17 @@ def breeding_program(n_loci, pop_0, ctx=None, timeout=None) -> BaseSolution:
     items = instance_array_genotype(pop_0, max_crossovers=1).items()
 
     if ctx is None:
-        ctx = DEFAULT_CTX
+        ctx = MinizincContext.from_solver_and_model_file(
+            "sat", "./eugene/solvers/minizinc/minres.mzn",
+        )
     if timeout is not None:
         timeout = timedelta(seconds=timeout)
     with ctx.instance.branch() as instance:
 
         for k, v in items:
             instance[k] = v
+        instance["recombinationRate"] = recombination_rate
+        instance["gamma"] = gamma
 
         result = instance.solve(free_search=True, timeout=timeout)
         return BaseSolution(
@@ -83,25 +38,6 @@ def breeding_program(n_loci, pop_0, ctx=None, timeout=None) -> BaseSolution:
             tree_right=result["treeRight"],
             objective=result.objective,
         )
-
-
-def breeding_program_distribute_optimised(
-    n_loci, dist_array, ctx=None, timeout=None
-) -> BaseSolution:
-    raise NotADirectoryError("still to decide what optimisations will go here")
-    # bounds
-    n_pop = max(dist_array) + 1
-    bound_lower = ceil((n_loci + n_pop) / 2)
-    bound_upper = ceil(n_loci / 2) + n_pop * n_pop - n_pop
-
-    leading_mins, mid, trailing_maxes = eu.distribute_sington_decomposition(
-        dist_array
-    )
-
-    # minizinc model
-    return breeding_program_distribute(
-        n_loci, dist_array, ctx=ctx, timeout=timeout
-    )
 
 
 class MinizincContext:
@@ -174,7 +110,7 @@ def instance_array_genotype(pop_0: List[ep2.PlantSPC], max_crossovers):
 
 
 DEFAULT_CTX = MinizincContext.from_solver_and_model_file(
-    "cp-sat", "./eugene/solvers/minizinc/mincross.mzn"
+    "sat", "./eugene/solvers/minizinc/minres.mzn"
 )
 
 
