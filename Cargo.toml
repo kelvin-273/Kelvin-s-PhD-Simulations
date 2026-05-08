@@ -1,0 +1,2 @@
+[dependencies]
+eugene_rs = { git = "https://github.com/kelvin-273/eugene_rs.git" }

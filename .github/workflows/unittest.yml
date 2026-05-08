@@ -1,0 +1,39 @@
+name: Run unittests
+
+on:
+  push:
+    branches:
+      - main  # Specify the branch(es) to run the workflow on
+  pull_request:
+    branches:
+      - main  # Run on pull requests to main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out the code
+      uses: actions/checkout@v3
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9  # Adjust this to your preferred Python version
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel maturin
+        maturin develop  # Build and install Rust dependency locally
+        pip install -e .
+        pip install unittest-xml-reporting  # Optional for better output formatting
+
+    - name: Run unittests
+      run: |
+        python -m unittest discover -s tests
